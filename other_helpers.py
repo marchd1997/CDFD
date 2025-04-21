@@ -1,8 +1,8 @@
 import numpy as np
 import networkx as nx
-
-from scipy.sparse import lil_array, csr_array, diags_array, coo_array
-from scipy.sparse.linalg import spsolve
+import numpy as np
+from scipy.sparse import lil_array, csr_array, diags_array, coo_array, identity, csr_matrix, eye
+from scipy.sparse.linalg import spsolve, lsqr,cg
 from scipy.sparse.csgraph import connected_components
 
 from CDFD import _group_index_labels 
@@ -114,3 +114,83 @@ def uniform_multigraph (n,m):
         G.add_edge(i, j, weight=weight)
     
     return G
+
+
+
+
+def finn_cycling_index_sparse(T, x, eps=1e-8, solver="lsqr", tol=1e-8, maxiter=None):
+    """
+    Compute Finn’s Cycling Index (FCI) for a large sparse network.
+
+    Parameters
+    ----------
+    T : array or scipy.sparse (n×n)
+        Flows matrix, T[i,j] = flow from i → j.
+    x : array_like (n,)
+        Total output of each node (column sums of T).
+    eps : float
+        Tiny diagonal regularizer for I–A.
+    solver : {"lsqr","cg","spsolve"}
+        Method to solve (I–A+eps·I)x = e_i.
+    tol : float
+        Convergence tolerance for iterative solvers.
+    maxiter : int or None
+        Max iterations (for CG).
+
+    Returns
+    -------
+    float
+        System‑level FCI in [0,1].
+    """
+    # ensure CSR format and 1‑d x
+    T = csr_matrix(T)
+    x = np.ravel(x).astype(float)
+    n = T.shape[0]
+
+    # column‑normalize to form A
+    Tc = T.tocsc(copy=True)
+    Tc.data = Tc.data.astype(float)
+    for j in range(n):
+        if x[j] != 0:
+            s, e = Tc.indptr[j], Tc.indptr[j+1]
+            Tc.data[s:e] /= x[j]
+    A = Tc.tocsr()
+
+    # build regularized Leontief matrix L = I – A + eps·I
+    L = eye(n, format="csr") - A
+    L = L.tolil()
+    L.setdiag(L.diagonal() + eps)
+    L = L.tocsr()
+
+    # compute node FCI
+    fci_node = np.zeros(n)
+    valid   = np.zeros(n, bool)
+    for i in range(n):
+        b = np.zeros(n); b[i] = 1.0
+
+        if solver == "lsqr":
+            sol = lsqr(L, b, atol=tol, btol=tol)[0]
+            Lii = sol[i] if np.isfinite(sol[i]) else 0.0
+
+        elif solver == "cg":
+            sol, info = cg(L, b, tol=tol, maxiter=maxiter)
+            Lii = sol[i] if info == 0 and np.isfinite(sol[i]) else 0.0
+
+        else:  # direct
+            try:
+                sol = spsolve(L, b)
+                Lii = sol[i]
+            except:
+                Lii = 0.0
+
+        if Lii > eps:
+            f = 1 - 1 / Lii
+            fci_node[i] = np.clip(f, 0, 1)
+            valid[i]   = True
+
+    # aggregate valid nodes
+    if not valid.any():
+        return 0.0
+    w = x[valid]
+    return float((fci_node[valid] * w).sum() / w.sum())
+
