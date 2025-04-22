@@ -1,0 +1,18 @@
+Each folder contains the list of nodes and edges crawled for each state.
+
+Node lists contain attributes:
+- Node ID (unique across states);
+- Node URL (unique for each node, the starting seed of the crawled website);
+- Node Name (the name of the agencies as appearing in our data source);
+- Year (the first year in which the website was indexed by the Internet Archive, equal to zero if not indexed);
+- Pages (the number of webpages found at the moment of the crawl).
+
+Edge lists contain attributes:
+- Src & Trg (NodeIDs of the linking and linked websites);
+- LinkCount (number of hyperlinks going from Src to Trg considering all of their webpages);
+- RelLinkCount (= LinkCount / Src's number of pages).
+
+An additional file, web_network_aggregation.txt, contains the full network of the 50 states. It contains attributes:
+- Src & Trg (NodeIDs of the linking and linked websites, consistent with the IDs of the state networks);
+- LinkCount (number of hyperlinks going from Src to Trg considering all of their webpages);
+- RelLinkCount (= LinkCount / Src's number of *links*. This is different that the state's edge value, for comparability across states).
