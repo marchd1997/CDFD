@@ -118,7 +118,7 @@ def uniform_multigraph (n,m):
 
 
 
-def finn_cycling_index_sparse(T, x, eps=1e-8, solver="lsqr", tol=1e-8, maxiter=None):
+def finn_cycling_index_sparse(T, x, eps=1e-8, solver="cg", tol=1e-8, maxiter=None):
     """
     Compute Finn’s Cycling Index (FCI) for a large sparse network.
 
