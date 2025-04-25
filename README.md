@@ -45,6 +45,9 @@ Another example, with clear depictions of the different networks can be found in
 - **generate_paper_figures** Directory with code necessary to generate the figures from the paper *[in preparation]*. The order of compilation must be:
   
     1. **data_sarafu:** Include in this directory the raw sarafu data. This data is available via the UK Data Service (UKDS) under their End User License, which stipulates suitable data-privacy protections. The dataset is available for download from the UKDS ReShare repository (https://reshare.ukdataservice.ac.uk/855142/) to users registered with the UKDS.
-    2. **sarafu_data_processing.ipynb:** Cleans sarafu data.
-    3. **generate_data_figures.ipynb:** Generates data to be depicted in figures. To decrese computational times some parameters have been reduced from the paper (but in comments we indicate the values used for the paper's figures). 
-    4. **plot_figures.ipynb:** Generates the figures. 
+    2. **data_government:** ​The dataset from the PNAS paper "Functional structures of US state governments" represents the online network of official state government websites. The data are from the study "Functional structures of US state governments" (PNAS, 2018), available at https://doi.org/10.1073/pnas.1803228115. 
+    3. **data_foodweb:** The folder contains the 92 aquatic food web models available from EcoBase, an open-access database of Ecopath with Ecosim (EwE) models published worldwide. URL:https://ecobase.ecopath.org/
+    4. **data_io:** The folder contains the input output data of 60 countries across 35 sectors from 2005 to 2015.
+    5. **sarafu_data_processing.ipynb:** Cleans sarafu data.
+    6. **generate_data_figures.ipynb:** Generates data to be depicted in figures. To decrese computational times some parameters have been reduced from the paper (but in comments we indicate the values used for the paper's figures). 
+    7. **plot_figures.ipynb:** Generates the figures. 
