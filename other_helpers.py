@@ -2,9 +2,8 @@ import numpy as np
 import networkx as nx
 import numpy as np
 from scipy.sparse import lil_array, csr_array, diags_array, coo_array, identity, csr_matrix, eye
-from scipy.sparse.linalg import spsolve, lsqr,cg
+from scipy.sparse.linalg import spsolve, lsqr,cg,inv
 from scipy.sparse.csgraph import connected_components
-
 from CDFD import _group_index_labels 
 from CDFD import get_circularity, is_decomposition, CDFD
 
@@ -115,19 +114,14 @@ def uniform_multigraph (n,m):
     
     return G
 
-
-
-
-def finn_cycling_index_sparse(T, x, eps=1e-8, solver="cg", tol=1e-8, maxiter=None):
+def finn_cycling_index(w, eps=0, solver="cg", tol=1e-8, maxiter=None):
     """
     Compute Finn’s Cycling Index (FCI) for a large sparse network.
 
     Parameters
     ----------
-    T : array or scipy.sparse (n×n)
-        Flows matrix, T[i,j] = flow from i → j.
-    x : array_like (n,)
-        Total output of each node (column sums of T).
+    w : array or scipy.sparse (n×n)
+        Flows matrix, w[i,j] = flow from i → j.
     eps : float
         Tiny diagonal regularizer for I–A.
     solver : {"lsqr","cg","spsolve"}
@@ -142,55 +136,40 @@ def finn_cycling_index_sparse(T, x, eps=1e-8, solver="cg", tol=1e-8, maxiter=Non
     float
         System‑level FCI in [0,1].
     """
-    # ensure CSR format and 1‑d x
-    T = csr_matrix(T)
-    x = np.ravel(x).astype(float)
-    n = T.shape[0]
+    # USE ARRAY INSTEAD OF MATRIX
+    # ensure CSR format and float 
+    w = csr_array(w)
+    w.data = w.data.astype(float)
+    # Add some little perturbation to avoid percfect singular
+    w.data += np.random.normal(loc=0.0, scale=1e-8, size=w.data.shape)
+    n = w.shape[0]
 
-    # column‑normalize to form A
-    Tc = T.tocsc(copy=True)
-    Tc.data = Tc.data.astype(float)
+    # Assume input/output in economy is so that all nodes in w are balanced
+    # As work in columns only need to worry about input
+    # CHECK CAN INCREASe in and output (compansating) and results dont changes PROBABLY FALSE. 
+    m = w.sum(axis=0) - w.sum(axis=1) # net inflow (in - out)
+    m = np.maximum(-m, 0) # Only need add inflow when there is deficit (oposite sign is deal with outflow) 
+    m = np.ravel(m) # ensure format of m (CHECK IF NEEDED)
+
+    x = np.ravel(w.sum(axis=0)) + m 
+
+
+    # MUTIPLY BY DIAGONAL
+    # column‑normalize to form A (including incoming flow)
     for j in range(n):
         if x[j] != 0:
-            s, e = Tc.indptr[j], Tc.indptr[j+1]
-            Tc.data[s:e] /= x[j]
-    A = Tc.tocsr()
-
-    # build regularized Leontief matrix L = I – A + eps·I
-    L = eye(n, format="csr") - A
-    L = L.tolil()
-    L.setdiag(L.diagonal() + eps)
-    L = L.tocsr()
-
-    # compute node FCI
+            s, e = w.indptr[j], w.indptr[j+1]
+            w.data[s:e] /= x[j] 
+    A = w.tocsr()
+    L = inv(eye(n, format="csr") - A)
     fci_node = np.zeros(n)
-    valid   = np.zeros(n, bool)
     for i in range(n):
-        b = np.zeros(n); b[i] = 1.0
-
-        if solver == "lsqr":
-            sol = lsqr(L, b, atol=tol, btol=tol)[0]
-            Lii = sol[i] if np.isfinite(sol[i]) else 0.0
-
-        elif solver == "cg":
-            sol, info = cg(L, b, tol=tol, maxiter=maxiter)
-            Lii = sol[i] if info == 0 and np.isfinite(sol[i]) else 0.0
-
-        else:  # direct
-            try:
-                sol = spsolve(L, b)
-                Lii = sol[i]
-            except:
-                Lii = 0.0
-
-        if Lii > eps:
-            f = 1 - 1 / Lii
-            fci_node[i] = np.clip(f, 0, 1)
-            valid[i]   = True
-
-    # aggregate valid nodes
-    if not valid.any():
+        Lii = L[i,i]
+        if Lii > eps: # (1-eps)^-1 = epsilon (to first order)
+            fci_node[i] = 1 - 1 / Lii
+  
+    sum_x = x.sum()
+    if sum_x == 0:
         return 0.0
-    w = x[valid]
-    return float((fci_node[valid] * w).sum() / w.sum())
-
+    
+    return float((fci_node * x).sum() / sum_x)
