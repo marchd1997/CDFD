@@ -1,11 +1,12 @@
 import numpy as np
 import networkx as nx
 import numpy as np
-from scipy.sparse import lil_array, csr_array, diags_array, coo_array, identity, csr_matrix, eye
-from scipy.sparse.linalg import spsolve, lsqr,cg,inv
+
+
+from scipy.sparse import lil_array, csr_array, csc_array, diags_array, coo_array, eye
+from scipy.sparse.linalg import spsolve, inv
 from scipy.sparse.csgraph import connected_components
 from CDFD import _group_index_labels 
-from CDFD import get_circularity, is_decomposition, CDFD
 
 from random import sample
 from collections import Counter
@@ -26,8 +27,6 @@ def trophic_coherence(G):
     """
     coherence = 1-trophic_incoherence(G)
     return coherence
-    
-    return incoherence 
 
 def trophic_incoherence(G):
     """Gets network incoherence of a graph.   
@@ -114,7 +113,7 @@ def uniform_multigraph (n,m):
     
     return G
 
-def finn_cycling_index(w, eps=0, solver="cg", tol=1e-8, maxiter=None):
+def finn_cycling_index(w, tol_balanced=1e-8):
     """
     Compute Finn’s Cycling Index (FCI) for a large sparse network.
 
@@ -122,54 +121,74 @@ def finn_cycling_index(w, eps=0, solver="cg", tol=1e-8, maxiter=None):
     ----------
     w : array or scipy.sparse (n×n)
         Flows matrix, w[i,j] = flow from i → j.
-    eps : float
-        Tiny diagonal regularizer for I–A.
-    solver : {"lsqr","cg","spsolve"}
-        Method to solve (I–A+eps·I)x = e_i.
-    tol : float
-        Convergence tolerance for iterative solvers.
-    maxiter : int or None
-        Max iterations (for CG).
+    tol_balanced : float
+        Relative tolarence to accept that network is balanced.
 
     Returns
     -------
     float
         System‑level FCI in [0,1].
     """
-    # USE ARRAY INSTEAD OF MATRIX
     # ensure CSR format and float 
-    w = csr_array(w)
-    w.data = w.data.astype(float)
-    # Add some little perturbation to avoid percfect singular
-    w.data += np.random.normal(loc=0.0, scale=1e-8, size=w.data.shape)
+    w = csc_array(w, dtype = 'float')
     n = w.shape[0]
 
-    # Assume input/output in economy is so that all nodes in w are balanced
-    # As work in columns only need to worry about input
-    # CHECK CAN INCREASe in and output (compansating) and results dont changes PROBABLY FALSE. 
-    m = w.sum(axis=0) - w.sum(axis=1) # net inflow (in - out)
-    m = np.maximum(-m, 0) # Only need add inflow when there is deficit (oposite sign is deal with outflow) 
-    m = np.ravel(m) # ensure format of m (CHECK IF NEEDED)
-
-    x = np.ravel(w.sum(axis=0)) + m 
-
-
-    # MUTIPLY BY DIAGONAL
-    # column‑normalize to form A (including incoming flow)
-    for j in range(n):
-        if x[j] != 0:
-            s, e = w.indptr[j], w.indptr[j+1]
-            w.data[s:e] /= x[j] 
-    A = w.tocsr()
-    L = inv(eye(n, format="csr") - A)
-    fci_node = np.zeros(n)
-    for i in range(n):
-        Lii = L[i,i]
-        if Lii > eps: # (1-eps)^-1 = epsilon (to first order)
-            fci_node[i] = 1 - 1 / Lii
-  
-    sum_x = x.sum()
-    if sum_x == 0:
-        return 0.0
+    # Find weakly connected compoenents 
+    n_components, labels = connected_components(csgraph=w, directed=True, connection='weak')  
+    components_idx = _group_index_labels(labels)
     
-    return float((fci_node * x).sum() / sum_x)
+    # find unnormalized fci by adding scc
+    fci = 0
+    for idx in components_idx:  
+        # Get the strongly connected component
+        scc = w[idx, :][:, idx]
+        fci += _fci_connected(scc)
+
+    # Normalize fcc
+    node_imbalances = w.sum(axis=0) - w.sum(axis=1)
+    m = np.maximum(-node_imbalances, 0) # assume input(m) and output minimal so all nodes in w balanced. 
+    x = w.sum(axis=0) + m 
+    return float(fci / x.sum())
+
+def _fci_connected(w, tol_balanced=1e-8):
+    """
+    Compute unnormalized Finn’s Cycling Index (FCI) for a connected sparse network.
+
+    Parameters
+    ----------
+    w : array or scipy.sparse (n×n)
+        Flows matrix, w[i,j] = flow from i → j.
+    tol_balanced : float
+        Relative tolarence to accept that network is balanced.
+
+    Returns
+    -------
+    float
+        System‑level unnormalized FCI.
+    """
+    # ensure CSR format and float 
+    w = csc_array(w, dtype = 'float')
+    n = w.shape[0]
+
+    # Compute m and x
+    node_imbalances = w.sum(axis=0) - w.sum(axis=1)
+    m = np.maximum(-node_imbalances, 0) # assume input(m) and output minimal so all nodes in w balanced. 
+    x = w.sum(axis=0) + m 
+
+    # If balanced up to relative tolerance, fci is 1 so unnormalized is x.sum()
+    max_weight = w.data.max() if w.data.size > 0 else 0
+    if node_imbalances.max() <= tol_balanced * max_weight: 
+        return float(x.sum())
+
+    # Compute A
+    normalizing_factors = np.divide(1., x, out=np.zeros_like(x), where = x!=0)
+    normalizing_matrix = diags_array(normalizing_factors)
+    A = w @ normalizing_matrix
+
+    # Compute fci at node level
+    L = inv(eye(n, format="csc") - A)
+    L_diag = L.diagonal()
+    fci_node =  np.divide(1., L_diag, out=np.ones_like(L_diag), where = L_diag!=0)
+    fci_node = np.ones_like(fci_node) - fci_node
+    
+    return float((fci_node * x).sum() )
