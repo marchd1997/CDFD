@@ -101,26 +101,15 @@ def in_cycle_ratio(G):
     weight_in_cycles_ratio = weight_in_cycles / np.sum(W.data)
     return weight_in_cycles_ratio
 
-def uniform_multigraph (n,m):
-    '''Generates ER directed weighted random graph with n nodes and m edges (self loops not allowed as in ER).'''
-    edges = [tuple(sample(range(n), 2)) for _ in range(m)] # maybe sort and count some how to get weights directly
-    weighted_edges = Counter(edges).items()
-    
-    G = nx.DiGraph()
-    G.add_nodes_from(range(n))
-    for (i, j), weight in weighted_edges:
-        G.add_edge(i, j, weight=weight)
-    
-    return G
-
-def finn_cycling_index(w, tol_balanced=1e-8):
+def finn_cycling_index(G, tol_balanced=1e-8):
     """
     Compute Finn’s Cycling Index (FCI) for a large sparse network.
 
     Parameters
     ----------
-    w : array or scipy.sparse (n×n)
-        Flows matrix, w[i,j] = flow from i → j.
+    G : nx.DiGraph (or Graph)
+        Weighted  digraph
+
     tol_balanced : float
         Relative tolarence to accept that network is balanced.
 
@@ -130,8 +119,8 @@ def finn_cycling_index(w, tol_balanced=1e-8):
         System‑level FCI in [0,1].
     """
     # ensure CSR format and float 
+    w = nx.adjacency_matrix(G)
     w = csc_array(w, dtype = 'float')
-    n = w.shape[0]
 
     # Find weakly connected compoenents 
     n_components, labels = connected_components(csgraph=w, directed=True, connection='weak')  
@@ -192,3 +181,15 @@ def _fci_connected(w, tol_balanced=1e-8):
     fci_node = np.ones_like(fci_node) - fci_node
     
     return float((fci_node * x).sum() )
+
+def uniform_multigraph (n,m):
+    '''Generates ER directed weighted random graph with n nodes and m edges (self loops not allowed as in ER).'''
+    edges = [tuple(sample(range(n), 2)) for _ in range(m)] # maybe sort and count some how to get weights directly
+    weighted_edges = Counter(edges).items()
+    
+    G = nx.DiGraph()
+    G.add_nodes_from(range(n))
+    for (i, j), weight in weighted_edges:
+        G.add_edge(i, j, weight=weight)
+    
+    return G
