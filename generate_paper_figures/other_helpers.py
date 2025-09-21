@@ -1,16 +1,25 @@
 import numpy as np
 import networkx as nx
 import numpy as np
+import os
 
 
 from scipy.sparse import lil_array, csr_array, csc_array, diags_array, coo_array, eye
 from scipy.sparse.linalg import spsolve, inv
 from scipy.sparse.csgraph import connected_components
-from CDFD import _group_index_labels 
+
 
 from random import sample
 from collections import Counter
 
+
+
+# Moving to parent directory to import from CDFD and other_helpers
+current_dir = os.getcwd()
+os.chdir("..")
+from CDFD import _group_index_labels 
+# Moving back to original directory
+os.chdir(current_dir)
 
 def trophic_coherence(G):
     """Gets network coherence of a graph.   
