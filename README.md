@@ -39,8 +39,6 @@ Another example, with clear depictions of the different networks can be found in
 - **CDFD.py:** Definition of functions needed to find CDFD decompositions and circularity/directedness of a network. The main packages used are numpy (v. 1.24.3), networkx (v. 3.1), scipy (v. 1.12.0) and to a lesser degree pulp (v. 2.8.0) and ortools (v. 9.8.3296). 
 
 - **example_CDFD.ipynb:** Example of usage of CDFD's main functions with depictions of the corresponding networks. 
-
-- **other_helpers:** Supplementary file to compute other measures of circularity from the literature and to generate random networks.
   
 - **generate_paper_figures** Directory with code necessary to generate the figures from the paper *[in preparation]*. The order of compilation must be:
   
@@ -48,6 +46,7 @@ Another example, with clear depictions of the different networks can be found in
     2. **data_government:** ​The dataset from the PNAS paper "Functional structures of US state governments" represents the online network of official state government websites. The data are from the study "Functional structures of US state governments" (PNAS, 2018), available at https://doi.org/10.1073/pnas.1803228115. 
     3. **data_foodweb:** The folder contains the 92 aquatic food web models available from EcoBase, an open-access database of Ecopath with Ecosim (EwE) models published worldwide. URL:https://ecobase.ecopath.org/
     4. **data_io:** The folder contains the input output data of 60 countries across 35 sectors from 2005 to 2015. Latest data are available here: http://www.oecd.org/sti/ind/input-outputtables.htm, from the OECD website.
-    5. **sarafu_data_processing.ipynb:** Cleans sarafu data.
-    6. **generate_data_figures.ipynb:** Generates data to be depicted in figures. To decrese computational times some parameters have been reduced from the paper (but in comments we indicate the values used for the paper's figures). 
-    7. **plot_figures.ipynb:** Generates the figures. 
+    5. **other_helpers.py:** Definitions of other measures of circularity from the literature and functions to generate random networks.
+    6. **sarafu_data_processing.ipynb:** Cleans sarafu data.
+    7. **generate_data_figures.ipynb:** Generates data to be depicted in figures. To decrese computational times some parameters have been reduced from the paper (but in comments we indicate the values used for the paper's figures). 
+    8. **plot_figures.ipynb:** Generates the figures. 
