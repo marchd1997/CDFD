@@ -1,16 +1,25 @@
 import numpy as np
 import networkx as nx
+import numpy as np
+import os
 
-from scipy.sparse import lil_array, csr_array, diags_array, coo_array
-from scipy.sparse.linalg import spsolve
+
+from scipy.sparse import lil_array, csr_array, csc_array, diags_array, coo_array, eye
+from scipy.sparse.linalg import spsolve, inv
 from scipy.sparse.csgraph import connected_components
 
-from CDFD import _group_index_labels 
-from CDFD import get_circularity, is_decomposition, CDFD
 
 from random import sample
 from collections import Counter
 
+
+
+# Moving to parent directory to import from CDFD and other_helpers
+current_dir = os.getcwd()
+os.chdir("..")
+from CDFD import _group_index_labels 
+# Moving back to original directory
+os.chdir(current_dir)
 
 def trophic_coherence(G):
     """Gets network coherence of a graph.   
@@ -27,8 +36,6 @@ def trophic_coherence(G):
     """
     coherence = 1-trophic_incoherence(G)
     return coherence
-    
-    return incoherence 
 
 def trophic_incoherence(G):
     """Gets network incoherence of a graph.   
@@ -102,6 +109,87 @@ def in_cycle_ratio(G):
         weight_in_cycles += np.sum((W[idx, :][:, idx]).data)
     weight_in_cycles_ratio = weight_in_cycles / np.sum(W.data)
     return weight_in_cycles_ratio
+
+def finn_cycling_index(G, tol_balanced=1e-8):
+    """
+    Compute Finn’s Cycling Index (FCI) for a large sparse network.
+
+    Parameters
+    ----------
+    G : nx.DiGraph (or Graph)
+        Weighted  digraph
+
+    tol_balanced : float
+        Relative tolarence to accept that network is balanced.
+
+    Returns
+    -------
+    float
+        System‑level FCI in [0,1].
+    """
+    # ensure CSR format and float 
+    w = nx.adjacency_matrix(G)
+    w = csc_array(w, dtype = 'float')
+
+    # Find weakly connected compoenents 
+    n_components, labels = connected_components(csgraph=w, directed=True, connection='weak')  
+    components_idx = _group_index_labels(labels)
+    
+    # find unnormalized fci by adding scc
+    fci = 0
+    for idx in components_idx:  
+        # Get the strongly connected component
+        scc = w[idx, :][:, idx]
+        fci += _fci_connected(scc)
+
+    # Normalize fcc
+    node_imbalances = w.sum(axis=0) - w.sum(axis=1)
+    m = np.maximum(-node_imbalances, 0) # assume input(m) and output minimal so all nodes in w balanced. 
+    x = w.sum(axis=0) + m 
+    return float(fci / x.sum())
+
+def _fci_connected(w, tol_balanced=1e-8):
+    """
+    Compute unnormalized Finn’s Cycling Index (FCI) for a connected sparse network.
+
+    Parameters
+    ----------
+    w : array or scipy.sparse (n×n)
+        Flows matrix, w[i,j] = flow from i → j.
+    tol_balanced : float
+        Relative tolarence to accept that network is balanced.
+
+    Returns
+    -------
+    float
+        System‑level unnormalized FCI.
+    """
+    # ensure CSR format and float 
+    w = csc_array(w, dtype = 'float')
+    n = w.shape[0]
+
+    # Compute m and x
+    node_imbalances = w.sum(axis=0) - w.sum(axis=1)
+    m = np.maximum(-node_imbalances, 0) # assume input(m) and output minimal so all nodes in w balanced. 
+    x = w.sum(axis=0) + m 
+
+    # If balanced up to relative tolerance, fci is 1 so unnormalized is x.sum()
+    max_weight = w.data.max() if w.data.size > 0 else 0
+    if node_imbalances.max() <= tol_balanced * max_weight: 
+        return float(x.sum())
+
+    # Compute A
+    normalizing_factors = np.divide(1., x, out=np.zeros_like(x), where = x!=0)
+    normalizing_matrix = diags_array(normalizing_factors)
+    A = w @ normalizing_matrix
+
+    # Compute fci at node level
+    L = inv(eye(n, format="csc") - A)
+    L_diag = L.diagonal()
+    fci_node =  np.divide(1., L_diag, out=np.ones_like(L_diag), where = L_diag!=0)
+    fci_node = np.ones_like(fci_node) - fci_node
+    
+    return float((fci_node * x).sum() )
 
 def uniform_multigraph (n,m):
     '''Generates ER directed weighted random graph with n nodes and m edges (self loops not allowed as in ER).'''
