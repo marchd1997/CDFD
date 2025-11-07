@@ -48,5 +48,18 @@ Another example, with clear depictions of the different networks can be found in
     4. **data_io:** The folder contains the input output data of 60 countries across 35 sectors from 2005 to 2015. Latest data are available here: http://www.oecd.org/sti/ind/input-outputtables.htm, from the OECD website.
     5. **other_helpers.py:** Definitions of other measures of circularity from the literature and functions to generate random networks.
     6. **sarafu_data_processing.ipynb:** Cleans sarafu data.
-    7. **generate_data_figures.ipynb:** Generates data to be depicted in figures. To decrese computational times some parameters have been reduced from the paper (but in comments we indicate the values used for the paper's figures). 
-    8. **plot_figures.ipynb:** Generates the figures. 
+    7. **generate_data_figures.ipynb:** Generates data to be depicted in figures. To decrese computational times some parameters have been reduced from the paper (but in comments we indicate the values used for the paper's figures).
+    8. **plot_figures.ipynb:** Generates the figures.
+
+## License
+
+[![CC BY 4.0][cc-by-shield]][cc-by]
+
+This work is licensed under a
+[Creative Commons Attribution 4.0 International License][cc-by].
+
+[![CC BY 4.0][cc-by-image]][cc-by]
+
+[cc-by]: http://creativecommons.org/licenses/by/4.0/
+[cc-by-image]: https://i.creativecommons.org/l/by/4.0/88x31.png
+[cc-by-shield]: https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg
