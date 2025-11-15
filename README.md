@@ -1,7 +1,7 @@
 # CDFD
 
 The code in CDFD computes Circular Directional Flow Decomposition of networks and their circularity/directionality. This is an implementation of the methods presented in the paper Homs-Dones, M., MacKay, R. S., Sansom, B., & Zhou, Y, *How circular is a directed network? A flow decomposition approach*, Royal Society Open Science (pending publication).
-.
+
 
 ## Background
 
