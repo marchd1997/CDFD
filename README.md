@@ -1,10 +1,12 @@
 # CDFD
 
-The code in CDFD computes Circular Directional Flow Decomposition of networks and their circularity/directionality. This is an implementation of the methods presented in the paper *[in preparation]*.
+The code in CDFD computes Circular Directional Flow Decomposition of networks and their circularity/directionality. This is an implementation of the methods presented in the paper Homs-Dones, M., MacKay, R. S., Sansom, B., & Zhou, Y, *How circular is a directed network? A flow decomposition approach*, Royal Society Open Science (pending publication).
+.
 
 ## Background
 
-The code in this repository implements algorithms to quantify the circularity and directedness of weighted directed networks. Our method is based on the decomposition (CDFD) of networks into an acyclic part and a perfectly cyclic one. Then, the proportion of the weight in the perfectly cyclic (respectively acyclic) part gives a measure of circularity (respectively directedness) of the network. This approach improves on previous notions of circularity/directedness in several ways as discussed in *[in preparation]*. 
+The code in this repository implements algorithms to quantify the circularity and directedness of weighted directed networks. Our method is based on the decomposition (CDFD) of networks into an acyclic part and a perfectly cyclic one. Then, the proportion of the weight in the perfectly cyclic (respectively acyclic) part gives a measure of circularity (respectively directedness) of the network. This approach improves on previous notions of circularity/directedness in several ways as discussed in Homs-Dones, M., MacKay, R. S., Sansom, B., & Zhou, Y, *How circular is a directed network? A flow decomposition approach*, Royal Society Open Science (pending publication).
+
 
 In general there is more than one CDFD of a network, here we implement BFF and Maximal. The Maximal finds the maximum possible circularity in the given network, whereas the BFF locally fairly distributes the circularity between different edges. We believe that BFF is a better representative of a typical circular part of a decomposition, but one may wish to use the Maximal instead as its implementation is currently faster.
 
